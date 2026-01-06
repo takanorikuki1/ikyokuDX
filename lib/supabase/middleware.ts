@@ -6,9 +6,15 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Skip Supabase initialization if environment variables are not set
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.warn('Supabase environment variables not configured, skipping session update')
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -39,3 +45,4 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse
 }
+
