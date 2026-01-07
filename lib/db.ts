@@ -137,9 +137,17 @@ export async function getCaseStudyById(id: string) {
 
 export async function getBoardPosts() {
     const supabase = await createClient();
-    const { data, error } = await supabase.from('board_posts').select('*');
+    const { data, error } = await supabase.from('board_posts').select('*, profiles(name)');
     if (error || !data) return [];
-    return data;
+
+    // Ensure all required fields have default values
+    return data.map((post: any) => ({
+        ...post,
+        tags: post.tags || [],
+        likes: post.likes || 0,
+        comments: post.comments || 0,
+        author: post.profiles?.name || 'Anonymous'
+    }));
 }
 
 export async function getEducationContent() {
@@ -161,17 +169,18 @@ export async function getDonationProjects() {
     const supabase = await createClient();
     const { data, error } = await supabase.from('donation_projects').select('*');
     if (error || !data) return [];
-    // Map to camelCase if necessary, for now assuming simpler usage or direct compatibility
+
+    // Keep snake_case to match client component expectations and ensure null safety
     return data.map((d: any) => ({
         id: d.id,
-        title: d.title,
-        description: d.description,
-        targetAmount: d.target_amount,
-        currentAmount: d.current_amount,
-        image: d.image_url,
-        organizer: d.organizer,
-        daysLeft: d.days_left,
-        category: d.category
+        title: d.title || '',
+        description: d.description || '',
+        goal_amount: d.goal_amount || 0,
+        current_amount: d.current_amount || 0,
+        supporter_count: d.supporter_count || 0,
+        category: d.category || 'medical_network',
+        status: d.status || 'active',
+        created_at: d.created_at
     }));
 }
 
