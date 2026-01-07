@@ -216,11 +216,8 @@ DROP POLICY IF EXISTS "Authenticated users can donate" ON donations;
 CREATE POLICY "Authenticated users can donate" ON donations FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ======================================
--- MESSAGES (メッセージ) - OPTIONAL
--- Uncomment if you need to create these tables fresh
--- If tables already exist with different structure, skip this section
+-- MESSAGES (メッセージ)
 -- ======================================
-/*
 CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     participant_1 UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -242,14 +239,22 @@ CREATE TABLE IF NOT EXISTS messages (
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Users can view own conversations" ON conversations;
-CREATE POLICY "Users can view own conversations" ON conversations FOR SELECT USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
+-- Demo-friendly policies (allow all for now)
+DROP POLICY IF EXISTS "Anyone can view conversations" ON conversations;
+CREATE POLICY "Anyone can view conversations" ON conversations FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Users can view messages in own conversations" ON messages;
-CREATE POLICY "Users can view messages in own conversations" ON messages FOR SELECT USING (
-    EXISTS (SELECT 1 FROM conversations c WHERE c.id = messages.conversation_id AND (c.participant_1 = auth.uid() OR c.participant_2 = auth.uid()))
-);
-*/
+DROP POLICY IF EXISTS "Anyone can create conversations" ON conversations;
+CREATE POLICY "Anyone can create conversations" ON conversations FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can update conversations" ON conversations;
+CREATE POLICY "Anyone can update conversations" ON conversations FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Anyone can view messages" ON messages;
+CREATE POLICY "Anyone can view messages" ON messages FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can send messages" ON messages;
+CREATE POLICY "Anyone can send messages" ON messages FOR INSERT WITH CHECK (true);
+
 
 -- ======================================
 -- INDEXES

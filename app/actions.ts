@@ -140,3 +140,94 @@ export async function createDonationProject(formData: FormData) {
     revalidatePath('/donation')
     return { success: true }
 }
+
+// ========== MESSAGING ACTIONS ==========
+
+export async function createConversation(participant2Id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // For demo, use a default participant_1 if not logged in
+    const participant1Id = user?.id || null
+
+    const { data, error } = await supabase.from('conversations').insert({
+        participant_1: participant1Id,
+        participant_2: participant2Id,
+        last_message: '',
+        last_message_at: new Date().toISOString()
+    }).select().single()
+
+    if (error) {
+        console.error('Create conversation error:', error)
+        return { error: `Failed to create conversation: ${error.message}` }
+    }
+
+    revalidatePath('/messages')
+    return { success: true, conversationId: data.id }
+}
+
+export async function sendMessage(conversationId: string, content: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // For demo, allow sending without auth
+    const senderId = user?.id || null
+
+    // Insert the message
+    const { error: messageError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: senderId,
+        content,
+        is_read: false
+    })
+
+    if (messageError) {
+        console.error('Send message error:', messageError)
+        return { error: `Failed to send message: ${messageError.message}` }
+    }
+
+    // Update conversation's last message
+    const { error: updateError } = await supabase.from('conversations').update({
+        last_message: content.substring(0, 100),
+        last_message_at: new Date().toISOString()
+    }).eq('id', conversationId)
+
+    if (updateError) {
+        console.error('Update conversation error:', updateError)
+    }
+
+    revalidatePath(`/messages/${conversationId}`)
+    revalidatePath('/messages')
+    return { success: true }
+}
+
+export async function getOrCreateConversation(participantId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const currentUserId = user?.id
+
+    // Try to find existing conversation
+    const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(participant_1.eq.${currentUserId},participant_2.eq.${participantId}),and(participant_1.eq.${participantId},participant_2.eq.${currentUserId})`)
+        .single()
+
+    if (existing) {
+        return { conversationId: existing.id }
+    }
+
+    // Create new conversation
+    const { data, error } = await supabase.from('conversations').insert({
+        participant_1: currentUserId,
+        participant_2: participantId,
+        last_message: '',
+        last_message_at: new Date().toISOString()
+    }).select().single()
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    return { conversationId: data.id }
+}

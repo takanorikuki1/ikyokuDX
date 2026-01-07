@@ -195,8 +195,75 @@ export async function getRecentDonations() {
     }));
 }
 
-// Conversation stubs (Real implementation requires Auth context mostly)
+// ========== MESSAGING FUNCTIONS ==========
+
 export async function getConversations() {
-    // Placeholder: in real app, fetch where participant matches current user
-    return [];
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+            *,
+            participant_1_profile:profiles!conversations_participant_1_fkey(id, name, specialty),
+            participant_2_profile:profiles!conversations_participant_2_fkey(id, name, specialty)
+        `)
+        .order('last_message_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((c: any) => ({
+        id: c.id,
+        participant1: c.participant_1_profile || { id: c.participant_1, name: 'Unknown', specialty: '' },
+        participant2: c.participant_2_profile || { id: c.participant_2, name: 'Unknown', specialty: '' },
+        lastMessage: c.last_message || '',
+        lastMessageAt: c.last_message_at,
+        createdAt: c.created_at
+    }));
+}
+
+export async function getConversation(id: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+            *,
+            participant_1_profile:profiles!conversations_participant_1_fkey(id, name, specialty),
+            participant_2_profile:profiles!conversations_participant_2_fkey(id, name, specialty)
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error || !data) return null;
+
+    return {
+        id: data.id,
+        participant1: data.participant_1_profile || { id: data.participant_1, name: 'Unknown', specialty: '' },
+        participant2: data.participant_2_profile || { id: data.participant_2, name: 'Unknown', specialty: '' },
+        lastMessage: data.last_message || '',
+        lastMessageAt: data.last_message_at,
+        createdAt: data.created_at
+    };
+}
+
+export async function getMessages(conversationId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('messages')
+        .select(`
+            *,
+            sender:profiles!messages_sender_id_fkey(id, name)
+        `)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+    if (error || !data) return [];
+
+    return data.map((m: any) => ({
+        id: m.id,
+        conversationId: m.conversation_id,
+        senderId: m.sender_id,
+        senderName: m.sender?.name || 'Unknown',
+        content: m.content,
+        isRead: m.is_read,
+        createdAt: m.created_at
+    }));
 }

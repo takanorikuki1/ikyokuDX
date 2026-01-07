@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -15,20 +14,46 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Upload } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Upload, FileVideo, FileText, Presentation, File } from "lucide-react"
 import { createEducationContent } from "@/app/actions"
+import { useToast } from "@/components/ui/use-toast"
+
+const contentTypes = [
+    { value: "video", label: "動画", icon: FileVideo, accept: "video/*" },
+    { value: "presentation", label: "プレゼンテーション (PowerPoint)", icon: Presentation, accept: ".ppt,.pptx,.key" },
+    { value: "document", label: "ドキュメント (PDF/Word)", icon: FileText, accept: ".pdf,.doc,.docx" },
+    { value: "other", label: "その他", icon: File, accept: "*" },
+]
 
 export function UploadContentDialog() {
     const [open, setOpen] = useState(false)
+    const [contentType, setContentType] = useState("video")
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const { toast } = useToast()
+
+    const selectedType = contentTypes.find(t => t.value === contentType) || contentTypes[0]
 
     async function handleSubmit(formData: FormData) {
+        setIsSubmitting(true)
+        formData.append("type", contentType)
+
         const res = await createEducationContent(formData)
+
         if (res?.success) {
             setOpen(false)
-            alert("コンテンツをアップロードしました")
+            toast({
+                title: "アップロード完了",
+                description: "コンテンツを投稿しました"
+            })
         } else {
-            alert("アップロードに失敗しました")
+            toast({
+                title: "エラー",
+                description: res?.error || "アップロードに失敗しました",
+                variant: "destructive"
+            })
         }
+        setIsSubmitting(false)
     }
 
     return (
@@ -36,46 +61,94 @@ export function UploadContentDialog() {
             <DialogTrigger asChild>
                 <Button>
                     <Upload className="w-4 h-4 mr-2" />
-                    動画投稿
+                    コンテンツ投稿
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>動画コンテンツ投稿</DialogTitle>
+                    <DialogTitle>教育コンテンツ投稿</DialogTitle>
                     <DialogDescription>
-                        教育用の動画や資料をアップロードします。
+                        動画、プレゼンテーション、ドキュメントなどをアップロードします
                     </DialogDescription>
                 </DialogHeader>
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="title" className="text-right">
-                                タイトル
-                            </Label>
-                            <Input id="title" name="title" className="col-span-3" required />
+                        <div className="space-y-2">
+                            <Label htmlFor="contentType">コンテンツタイプ</Label>
+                            <Select value={contentType} onValueChange={setContentType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="タイプを選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {contentTypes.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                            <div className="flex items-center gap-2">
+                                                <type.icon className="w-4 h-4" />
+                                                {type.label}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="category" className="text-right">
-                                カテゴリ
-                            </Label>
-                            <Input id="category" name="category" className="col-span-3" placeholder="例: 手術手技" />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="title">タイトル</Label>
+                            <Input id="title" name="title" placeholder="コンテンツのタイトル" required />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="description" className="text-right">
-                                説明
-                            </Label>
-                            <Textarea id="description" name="description" className="col-span-3" required />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="category">カテゴリ</Label>
+                            <Select name="category" defaultValue="lecture">
+                                <SelectTrigger>
+                                    <SelectValue placeholder="カテゴリを選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="lecture">講義</SelectItem>
+                                    <SelectItem value="surgery">手術手技</SelectItem>
+                                    <SelectItem value="case_study">症例検討</SelectItem>
+                                    <SelectItem value="guideline">ガイドライン</SelectItem>
+                                    <SelectItem value="research">研究発表</SelectItem>
+                                    <SelectItem value="other">その他</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="file" className="text-right">
-                                動画ファイル
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">説明</Label>
+                            <Textarea
+                                id="description"
+                                name="description"
+                                placeholder="コンテンツの説明を入力..."
+                                rows={3}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="file" className="flex items-center gap-2">
+                                <selectedType.icon className="w-4 h-4" />
+                                ファイル
                             </Label>
-                            <Input id="file" type="file" className="col-span-3" accept="video/*" disabled />
-                            <p className="text-xs text-muted-foreground col-start-2 col-span-3">※デモ環境のためファイルアップロードは無効化されています</p>
+                            <Input
+                                id="file"
+                                type="file"
+                                accept={selectedType.accept}
+                                disabled
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                ※ デモ環境のためファイルアップロードは無効化されています。
+                                タイトルと説明のみが登録されます。
+                            </p>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">投稿する</Button>
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            キャンセル
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? "投稿中..." : "投稿する"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
