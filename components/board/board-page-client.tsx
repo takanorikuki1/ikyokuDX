@@ -18,9 +18,9 @@ export function BoardPageClient({ initialPosts }: BoardPageClientProps) {
 
     const filteredPosts = posts.filter(
         (post) =>
-            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
+            post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (post.tags || []).some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
     )
 
     return (

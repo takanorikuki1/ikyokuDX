@@ -46,7 +46,7 @@ export function DonationPageClient({ projects, recentDonations }: DonationPageCl
             <CardContent className="space-y-6">
               {projects.map((project) => {
                 const Icon = projectIcons[project.category] || Heart
-                const progress = (project.current_amount / project.goal_amount) * 100
+                const progress = ((project.current_amount || 0) / (project.goal_amount || 1)) * 100
                 return (
                   <Link key={project.id} href={`/donation/${project.id}`}>
                     <div className="p-4 border rounded-lg space-y-3 hover:border-primary transition-colors cursor-pointer">
@@ -60,14 +60,14 @@ export function DonationPageClient({ projects, recentDonations }: DonationPageCl
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">
-                                {project.current_amount.toLocaleString()}円 / {project.goal_amount.toLocaleString()}円
+                                {(project.current_amount || 0).toLocaleString()}円 / {(project.goal_amount || 0).toLocaleString()}円
                               </span>
                               <span className="font-medium">{Math.round(progress)}%</span>
                             </div>
                             <Progress value={progress} className="h-2" />
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Users className="w-4 h-4" />
-                              <span>{project.supporter_count}人の支援者</span>
+                              <span>{project.supporter_count || 0}人の支援者</span>
                             </div>
                           </div>
                         </div>
@@ -115,7 +115,7 @@ export function DonationPageClient({ projects, recentDonations }: DonationPageCl
                 <div key={donation.id} className="space-y-1 pb-4 border-b last:border-0 last:pb-0">
                   <div className="flex justify-between items-start">
                     <span className="font-medium">{donation.profiles?.full_name || donation.donor_name}</span>
-                    <Badge variant="secondary">{donation.amount.toLocaleString()}円</Badge>
+                    <Badge variant="secondary">{(donation.amount || 0).toLocaleString()}円</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {new Date(donation.created_at).toLocaleDateString("ja-JP")}
