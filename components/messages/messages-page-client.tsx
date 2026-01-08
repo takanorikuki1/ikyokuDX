@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MessageSquare, Plus, Search, Send, User } from "lucide-react"
+import { MessageSquare, Plus, Search, Send, User, Loader2 } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -19,6 +19,7 @@ import {
 import { createConversation } from "@/app/actions"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useToast } from "@/components/ui/use-toast"
 
 interface Conversation {
     id: string
@@ -43,7 +44,9 @@ export function MessagesPageClient({ initialConversations, doctors }: MessagesPa
     const [conversations] = useState<Conversation[]>(initialConversations)
     const [searchQuery, setSearchQuery] = useState("")
     const [isNewChatOpen, setIsNewChatOpen] = useState(false)
+    const [isCreating, setIsCreating] = useState(false)
     const router = useRouter()
+    const { toast } = useToast()
 
     const filteredConversations = conversations.filter(conv => {
         const name1 = conv.participant1?.name?.toLowerCase() || ''
@@ -53,11 +56,31 @@ export function MessagesPageClient({ initialConversations, doctors }: MessagesPa
     })
 
     const handleStartConversation = async (doctorId: string) => {
-        const result = await createConversation(doctorId)
-        if (result.conversationId) {
-            setIsNewChatOpen(false)
-            router.push(`/messages/${result.conversationId}`)
+        setIsCreating(true)
+        try {
+            const result = await createConversation(doctorId)
+            if (result.error) {
+                toast({
+                    title: "エラー",
+                    description: result.error,
+                    variant: "destructive"
+                })
+            } else if (result.conversationId) {
+                setIsNewChatOpen(false)
+                toast({
+                    title: "会話を開始しました",
+                    description: "メッセージを送信できます"
+                })
+                router.push(`/messages/${result.conversationId}`)
+            }
+        } catch (error) {
+            toast({
+                title: "エラー",
+                description: "会話の作成に失敗しました",
+                variant: "destructive"
+            })
         }
+        setIsCreating(false)
     }
 
     const formatTime = (dateString: string) => {
